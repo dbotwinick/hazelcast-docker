@@ -156,7 +156,7 @@ jobs:
             --build-arg HZ_VERSION=${{ env.HZ_VERSION }} \
             --build-arg HZ_VARIANT=${{ matrix.variant }} \
             ${TAGS_ARG} \
-            --platform=linux/arm64,linux/amd64,linux/ppc64le hazelcast-oss
+            --platform=linux/arm64,linux/amd64 hazelcast-oss
 
       - name: Build/Push EE image
         if: env.EDITIONS == 'All' || env.EDITIONS == 'EE'
@@ -173,7 +173,7 @@ jobs:
             --build-arg HZ_VERSION=${{ env.HZ_VERSION }} \
             --build-arg HZ_VARIANT=${{ matrix.variant }} \
             ${TAGS_ARG} \
-            --platform=linux/arm64,linux/amd64,linux/ppc64le,linux/s390x hazelcast-enterprise
+            --platform=linux/arm64,linux/amd64 hazelcast-enterprise
 
   post-push:
     runs-on: ubuntu-latest
