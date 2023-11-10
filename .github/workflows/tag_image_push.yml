@@ -41,7 +41,9 @@ jobs:
       DOCKER_ORG: hazelcast
       HZ_VERSION: ${{ github.event.inputs.HZ_VERSION }}
       RELEASE_VERSION: ${{ github.event.inputs.RELEASE_VERSION }}
-      EDITIONS: ${{ github.event.inputs.EDITIONS || 'All' }}
+      EDITIONS: ${{ github.event.inputs.EDITIONS || 'OSS' }}  # OSS by default for my purposes...
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
     steps:
       - name: Set HZ version as environment variable
         run: |
@@ -86,8 +88,12 @@ jobs:
         with:
           version: v0.5.1
 
-      - name: Login to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Test OSS image
         if: env.EDITIONS == 'All' || env.EDITIONS == 'OSS'
@@ -144,7 +150,7 @@ jobs:
           TAGS_ARG=""
           for tag in ${TAGS_TO_PUSH[@]}
           do
-             TAGS_ARG="${TAGS_ARG} --tag ${{ env.DOCKER_ORG }}/hazelcast:${tag}${{ matrix.suffix }}"
+             TAGS_ARG="${TAGS_ARG} --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${tag}${{ matrix.suffix }}"
           done
           docker buildx build --push \
             --build-arg HZ_VERSION=${{ env.HZ_VERSION }} \
@@ -161,7 +167,7 @@ jobs:
           TAGS_ARG=""
           for tag in ${TAGS_TO_PUSH[@]}
           do
-             TAGS_ARG="${TAGS_ARG} --tag ${{ env.DOCKER_ORG }}/hazelcast-enterprise:${tag}${{ matrix.suffix }}"
+             TAGS_ARG="${TAGS_ARG} --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-enterprise:${tag}${{ matrix.suffix }}"
           done
           docker buildx build --push \
             --build-arg HZ_VERSION=${{ env.HZ_VERSION }} \
@@ -175,25 +181,26 @@ jobs:
     env:
       EDITIONS: ${{ github.event.inputs.EDITIONS || 'All' }}
     steps:
-      - name: Update Docker Hub Description of OSS image
-        if: env.PUSH_LATEST == 'yes' && (env.EDITIONS == 'All' || env.EDITIONS == 'OSS' )
-        uses: peter-evans/dockerhub-description@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: hazelcast/hazelcast
-          short-description: Hazelcast Docker Image
-          readme-filepath: ./README.md
+      # NOT RELEVANT FOR FORKED REPO
+      # - name: Update Docker Hub Description of OSS image
+      #   if: env.PUSH_LATEST == 'yes' && (env.EDITIONS == 'All' || env.EDITIONS == 'OSS' )
+      #   uses: peter-evans/dockerhub-description@v3
+      #   with:
+      #     username: ${{ secrets.DOCKER_USERNAME }}
+      #     password: ${{ secrets.DOCKER_PASSWORD }}
+      #     repository: hazelcast/hazelcast
+      #     short-description: Hazelcast Docker Image
+      #     readme-filepath: ./README.md
 
-      - name: Update Docker Hub Description of EE image
-        if: env.PUSH_LATEST == 'yes' && (env.EDITIONS == 'All' || env.EDITIONS == 'EE' )
-        uses: peter-evans/dockerhub-description@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: hazelcast/hazelcast-enterprise
-          short-description: Hazelcast Enterprise Docker Image
-          readme-filepath: ./README.md
+      # - name: Update Docker Hub Description of EE image
+      #   if: env.PUSH_LATEST == 'yes' && (env.EDITIONS == 'All' || env.EDITIONS == 'EE' )
+      #   uses: peter-evans/dockerhub-description@v3
+      #   with:
+      #     username: ${{ secrets.DOCKER_USERNAME }}
+      #     password: ${{ secrets.DOCKER_PASSWORD }}
+      #     repository: hazelcast/hazelcast-enterprise
+      #     short-description: Hazelcast Enterprise Docker Image
+      #     readme-filepath: ./README.md
 
       - name: Create release
         if: github.event_name == 'push'
